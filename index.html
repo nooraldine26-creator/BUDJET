@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1e293b">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(() => console.log('SW Registered'));
+  }
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ميزانيتي">
+<title>ميزانيتي</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f1f5f9;
+  --card:#fff;
+  --blue:#2563eb;
+  --blue-dark:#1d4ed8;
+  --green:#16a34a;
+  --green-bg:#dcfce7;
+  --red:#dc2626;
+  --red-bg:#fee2e2;
+  --text:#0f172a;
+  --sub:#64748b;
+  --border:#e2e8f0;
+  --muted:#94a3b8;
+  --shadow:0 1px 4px rgba(0,0,0,.08);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);min-height:100vh;padding-bottom:5rem}
+
+/* HEADER */
+.header{background:var(--blue);color:#fff;padding:1rem 1.2rem 1.4rem;position:sticky;top:0;z-index:20}
+.header h1{font-size:18px;font-weight:600}
+.header p{font-size:12px;opacity:.75;margin-top:2px}
+
+/* NAV TABS */
+.nav-tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:60px;z-index:19}
+.nav-tab{flex:1;padding:.75rem .5rem;border:none;background:none;font-family:inherit;font-size:13px;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:.15s}
+.nav-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+
+/* PAGES */
+.page{display:none;padding:1rem;max-width:480px;margin:0 auto}
+.page.active{display:block}
+
+/* CARDS */
+.balance-card{background:var(--blue);color:#fff;border-radius:16px;padding:1.5rem;text-align:center;margin-bottom:1rem}
+.balance-label{font-size:13px;opacity:.8;margin-bottom:.4rem}
+.balance-amount{font-size:36px;font-weight:700}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem}
+.stat-card{background:var(--card);border-radius:12px;padding:1rem;text-align:center;box-shadow:var(--shadow)}
+.stat-label{font-size:12px;color:var(--sub);margin-bottom:.3rem}
+.stat-value{font-size:20px;font-weight:600}
+.stat-value.income{color:var(--green)}
+.stat-value.expense{color:var(--red)}
+
+/* INPUT FORM */
+.input-group{background:var(--card);border-radius:16px;padding:1.2rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.8rem}
+.type-btn{padding:.6rem;border-radius:10px;border:1.5px solid var(--border);background:#f8fafc;color:var(--sub);font-size:14px;cursor:pointer;font-family:inherit;transition:.15s}
+.type-btn.active.income{background:var(--green-bg);border-color:var(--green);color:#15803d;font-weight:600}
+.type-btn.active.expense{background:var(--red-bg);border-color:var(--red);color:#b91c1c;font-weight:600}
+.inp{width:100%;background:#f8fafc;border:1.5px solid var(--border);border-radius:10px;padding:.7rem 1rem;font-size:15px;color:var(--text);outline:none;font-family:inherit;transition:.15s;-webkit-appearance:none;appearance:none}
+.inp:focus{border-color:var(--blue);background:#fff}
+.inp.error{border-color:var(--red)}
+.inp-full{margin-bottom:.6rem}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem}
+.add-btn{width:100%;padding:.8rem;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;transition:.15s}
+.add-btn:active{background:var(--blue-dark)}
+
+/* CATEGORIES MANAGER */
+.cat-manager{background:var(--card);border-radius:16px;padding:1.2rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.cat-manager h3{font-size:14px;font-weight:600;color:var(--text);margin-bottom:.75rem}
+.cat-section{margin-bottom:.75rem}
+.cat-section-label{font-size:12px;color:var(--sub);margin-bottom:.4rem;font-weight:500}
+.cat-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem}
+.cat-chip{padding:.3rem .7rem;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid;display:flex;align-items:center;gap:.3rem}
+.cat-chip.income-chip{background:var(--green-bg);border-color:#86efac;color:#15803d}
+.cat-chip.expense-chip{background:var(--red-bg);border-color:#fca5a5;color:#b91c1c}
+.cat-chip .del-cat{background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:0;color:inherit;opacity:.6}
+.cat-chip .del-cat:hover{opacity:1}
+.cat-add-row{display:flex;gap:.4rem}
+.cat-inp{flex:1;background:#f8fafc;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .75rem;font-size:13px;color:var(--text);outline:none;font-family:inherit}
+.cat-inp:focus{border-color:var(--blue)}
+.cat-add-btn{padding:.5rem .9rem;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
+
+/* TRANSACTIONS */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.section-title{font-size:15px;font-weight:600;color:var(--text)}
+.filter-tabs{display:flex;gap:.4rem}
+.ftab{padding:.3rem .7rem;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--sub);font-size:12px;cursor:pointer;font-family:inherit}
+.ftab.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.txn-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
+.txn-item{background:var(--card);border-radius:12px;padding:.85rem 1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow)}
+.txn-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.txn-icon.income{background:var(--green-bg)}
+.txn-icon.expense{background:var(--red-bg)}
+.txn-info{flex:1;min-width:0}
+.txn-name{font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txn-date{font-size:11px;color:var(--muted);margin-top:2px}
+.txn-amount{font-size:15px;font-weight:600;white-space:nowrap}
+.txn-amount.income{color:var(--green)}
+.txn-amount.expense{color:var(--red)}
+.txn-actions{display:flex;gap:.2rem}
+.txn-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:17px;line-height:1;border-radius:6px;transition:.15s}
+.txn-btn:hover{color:var(--blue);background:#eff6ff}
+.txn-btn.del:hover{color:var(--red);background:var(--red-bg)}
+.empty-state{text-align:center;padding:2.5rem;color:var(--muted);font-size:14px;background:var(--card);border-radius:12px}
+.clear-btn{width:100%;padding:.6rem;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit}
+.clear-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* EDIT MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:480px}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:1rem;color:var(--text)}
+.modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.75rem}
+.modal-save{padding:.75rem;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;font-weight:500}
+.modal-cancel{padding:.75rem;background:#f1f5f9;color:var(--sub);border:1.5px solid var(--border);border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit}
+.modal .inp{margin-bottom:.6rem}
+.modal .type-toggle{margin-bottom:.8rem}
+
+/* REPORTS PAGE */
+.report-filters{background:var(--card);border-radius:12px;padding:1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.report-filters h3{font-size:14px;font-weight:600;margin-bottom:.75rem;color:var(--text)}
+.filter-row{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem}
+.filter-row.three{grid-template-columns:1fr 1fr 1fr}
+.report-btn{width:100%;padding:.75rem;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500;margin-top:.25rem}
+.report-results{background:var(--card);border-radius:12px;padding:1rem;box-shadow:var(--shadow)}
+.report-results h3{font-size:14px;font-weight:600;margin-bottom:.75rem;color:var(--text)}
+.report-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:1rem}
+.rscard{border-radius:10px;padding:.75rem;text-align:center}
+.rscard.r-income{background:var(--green-bg)}
+.rscard.r-expense{background:var(--red-bg)}
+.rscard.r-balance{background:#eff6ff}
+.rscard .rs-label{font-size:11px;color:var(--sub);margin-bottom:.2rem}
+.rscard .rs-value{font-size:14px;font-weight:700}
+.rscard.r-income .rs-value{color:var(--green)}
+.rscard.r-expense .rs-value{color:var(--red)}
+.rscard.r-balance .rs-value{color:var(--blue)}
+.group-block{margin-bottom:.75rem}
+.group-title{font-size:13px;font-weight:600;color:var(--sub);padding:.4rem 0;border-bottom:1px solid var(--border);margin-bottom:.4rem}
+.rep-txn{display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px dashed #f1f5f9;font-size:13px}
+.rep-txn:last-child{border:none}
+.rep-txn-left{display:flex;align-items:center;gap:.5rem}
+.rep-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rep-dot.income{background:var(--green)}
+.rep-dot.expense{background:var(--red)}
+.rep-desc{color:var(--text);font-weight:500}
+.rep-cat{font-size:11px;color:var(--muted)}
+.rep-amount.income{color:var(--green);font-weight:600}
+.rep-amount.expense{color:var(--red);font-weight:600}
+.no-results{text-align:center;color:var(--muted);font-size:13px;padding:1.5rem}
+
+/* INSTALL HINT */
+.install-hint{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:.9rem 1rem;margin-bottom:1rem;font-size:13px;color:#1e40af;line-height:1.6}
+.install-hint strong{display:block;margin-bottom:.3rem;font-size:14px}
+.dismiss-btn{background:none;border:none;color:#60a5fa;font-size:12px;cursor:pointer;margin-top:.4rem;font-family:inherit;padding:0}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><i class="ti ti-wallet"></i> ميزانيتي</h1>
+  <p>تتبع دخلك ومصاريفك بسهولة</p>
+</div>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="showPage('home',this)"><i class="ti ti-home"></i> الرئيسية</button>
+  <button class="nav-tab" onclick="showPage('txns',this)"><i class="ti ti-list"></i> السجل</button>
+  <button class="nav-tab" onclick="showPage('reports',this)"><i class="ti ti-chart-bar"></i> التقارير</button>
+  <button class="nav-tab" onclick="showPage('settings',this)"><i class="ti ti-settings"></i> الإعدادات</button>
+</div>
+
+<!-- HOME PAGE -->
+<div class="page active" id="page-home">
+
+  <div style="padding:1rem;max-width:480px;margin:0 auto">
+    <div class="install-hint" id="installHint">
+      <strong>📲 أضفه لشاشتك الرئيسية</strong>
+      افتح القائمة في المتصفح ← "إضافة إلى الشاشة الرئيسية"
+      <br><button class="dismiss-btn" onclick="document.getElementById('installHint').style.display='none'">إخفاء</button>
+    </div>
+
+    <div class="balance-card">
+      <div class="balance-label">الرصيد الحالي</div>
+      <div class="balance-amount" id="balanceAmt">0.00 د.إ</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">إجمالي الدخل</div>
+        <div class="stat-value income" id="totalIncome">0.00 د.إ</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">إجمالي المصاريف</div>
+        <div class="stat-value expense" id="totalExpense">0.00 د.إ</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="type-toggle">
+        <button class="type-btn active income" id="btnIncome" onclick="setType('income')">
+          <i class="ti ti-arrow-down-circle"></i> دخل
+        </button>
+        <button class="type-btn expense" id="btnExpense" onclick="setType('expense')">
+          <i class="ti ti-arrow-up-circle"></i> مصروف
+        </button>
+      </div>
+      <input class="inp inp-full" id="inpDesc" placeholder="الوصف (مثلاً: راتب، إيجار...)" />
+      <div class="input-row">
+        <input class="inp" id="inpAmt" type="number" placeholder="المبلغ (د.إ)" min="0" inputmode="decimal" />
+        <select class="inp" id="inpCat"></select>
+      </div>
+      <button class="add-btn" onclick="addTxn()">
+        <i class="ti ti-plus"></i> إضافة
+      </button>
+    </div>
+
+    <!-- Last 5 transactions preview -->
+    <div class="section-header">
+      <div class="section-title">آخر العمليات</div>
+      <button class="ftab" onclick="showPage('txns',document.querySelectorAll('.nav-tab')[1])">عرض الكل</button>
+    </div>
+    <div class="txn-list" id="homeList"></div>
+  </div>
+</div>
+
+<!-- TRANSACTIONS PAGE -->
+<div class="page" id="page-txns">
+  <div style="padding:1rem;max-width:480px;margin:0 auto">
+    <div class="section-header">
+      <div class="section-title">السجل الكامل</div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">الكل</button>
+        <button class="ftab" onclick="setFilter('income',this)">دخل</button>
+        <button class="ftab" onclick="setFilter('expense',this)">مصاريف</button>
+      </div>
+    </div>
+    <div class="txn-list" id="txnList"></div>
+    <button class="clear-btn" onclick="clearAll()"><i class="ti ti-trash"></i> مسح الكل</button>
+  </div>
+</div>
+
+<!-- REPORTS PAGE -->
+<div class="page" id="page-reports">
+  <div style="padding:1rem;max-width:480px;margin:0 auto">
+    <div class="report-filters">
+      <h3><i class="ti ti-filter"></i> فلترة التقرير</h3>
+      <div class="filter-row">
+        <select class="inp" id="rYear">
+          <option value="">كل السنوات</option>
+        </select>
+        <select class="inp" id="rMonth">
+          <option value="">كل الشهور</option>
+          <option value="1">يناير</option><option value="2">فبراير</option>
+          <option value="3">مارس</option><option value="4">أبريل</option>
+          <option value="5">مايو</option><option value="6">يونيو</option>
+          <option value="7">يوليو</option><option value="8">أغسطس</option>
+          <option value="9">سبتمبر</option><option value="10">أكتوبر</option>
+          <option value="11">نوفمبر</option><option value="12">ديسمبر</option>
+        </select>
+      </div>
+      <div class="filter-row three">
+        <select class="inp" id="rType">
+          <option value="">الكل</option>
+          <option value="income">دخل</option>
+          <option value="expense">مصروف</option>
+        </select>
+        <select class="inp" id="rCat">
+          <option value="">كل التصنيفات</option>
+        </select>
+        <select class="inp" id="rGroup">
+          <option value="month">تجميع شهري</option>
+          <option value="day">تجميع يومي</option>
+          <option value="cat">حسب التصنيف</option>
+          <option value="type">حسب النوع</option>
+        </select>
+      </div>
+      <button class="report-btn" onclick="generateReport()"><i class="ti ti-chart-bar"></i> عرض التقرير</button>
+    </div>
+    <div class="report-results" id="reportResults" style="display:none"></div>
+  </div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="page-settings">
+  <div style="padding:1rem;max-width:480px;margin:0 auto">
+    <div class="cat-manager">
+      <h3><i class="ti ti-tags"></i> إدارة التصنيفات</h3>
+
+      <div class="cat-section">
+        <div class="cat-section-label">تصنيفات الدخل</div>
+        <div class="cat-chips" id="incomeCats"></div>
+        <div class="cat-add-row">
+          <input class="cat-inp" id="newIncCat" placeholder="تصنيف جديد..." />
+          <button class="cat-add-btn" onclick="addCat('income')"><i class="ti ti-plus"></i> إضافة</button>
+        </div>
+      </div>
+
+      <div class="cat-section">
+        <div class="cat-section-label">تصنيفات المصاريف</div>
+        <div class="cat-chips" id="expenseCats"></div>
+        <div class="cat-add-row">
+          <input class="cat-inp" id="newExpCat" placeholder="تصنيف جديد..." />
+          <button class="cat-add-btn" onclick="addCat('expense')"><i class="ti ti-plus"></i> إضافة</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3><i class="ti ti-edit"></i> تعديل العملية</h3>
+    <input type="hidden" id="editId" />
+    <div class="type-toggle">
+      <button class="type-btn active income" id="editBtnIncome" onclick="setEditType('income')">
+        <i class="ti ti-arrow-down-circle"></i> دخل
+      </button>
+      <button class="type-btn expense" id="editBtnExpense" onclick="setEditType('expense')">
+        <i class="ti ti-arrow-up-circle"></i> مصروف
+      </button>
+    </div>
+    <input class="inp" id="editDesc" placeholder="الوصف" />
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+      <input class="inp" id="editAmt" type="number" placeholder="المبلغ" inputmode="decimal" />
+      <select class="inp" id="editCat"></select>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeEdit()">إلغاء</button>
+      <button class="modal-save" onclick="saveEdit()">حفظ التعديل</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+let txns = JSON.parse(localStorage.getItem('mybudget_txns') || '[]');
+
+const defaultCats = {
+  income: ['راتب','عمل حر','استثمار','هدية','أخرى'],
+  expense: ['إيجار','طعام','مواصلات','فواتير','تسوق','ترفيه','صحة','تعليم','أخرى']
+};
+
+let cats = JSON.parse(localStorage.getItem('mybudget_cats') || JSON.stringify(defaultCats));
+
+let currentType = 'income';
+let currentFilter = 'all';
+let editType = 'income';
+
+// ===== PERSISTENCE =====
+function save() { localStorage.setItem('mybudget_txns', JSON.stringify(txns)); }
+function saveCats() { localStorage.setItem('mybudget_cats', JSON.stringify(cats)); }
+
+// ===== HELPERS =====
+function fmt(n) {
+  return n.toLocaleString('ar-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' د.إ';
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.toLocaleDateString('ar-AE', { day: 'numeric', month: 'numeric', year: 'numeric' });
+}
+
+function parseTxnDate(t) {
+  // store ISO date for filtering
+  return t.isoDate ? new Date(t.isoDate) : new Date();
+}
+
+// ===== PAGES =====
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if (id === 'reports') populateReportFilters();
+  render();
+}
+
+// ===== TYPE =====
+function setType(t) {
+  currentType = t;
+  document.getElementById('btnIncome').className = 'type-btn' + (t === 'income' ? ' active income' : '');
+  document.getElementById('btnExpense').className = 'type-btn' + (t === 'expense' ? ' active expense' : '');
+  updateCatDropdown('inpCat', t);
+}
+
+function setEditType(t) {
+  editType = t;
+  document.getElementById('editBtnIncome').className = 'type-btn' + (t === 'income' ? ' active income' : '');
+  document.getElementById('editBtnExpense').className = 'type-btn' + (t === 'expense' ? ' active expense' : '');
+  updateCatDropdown('editCat', t);
+}
+
+// ===== CATEGORY DROPDOWN =====
+function updateCatDropdown(selectId, type) {
+  const sel = document.getElementById(selectId);
+  const prev = sel.value;
+  sel.innerHTML = '';
+  (cats[type] || []).forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    sel.appendChild(o);
+  });
+  if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
+// ===== ADD =====
+function addTxn() {
+  const desc = document.getElementById('inpDesc').value.trim();
+  const amt = parseFloat(document.getElementById('inpAmt').value);
+  const cat = document.getElementById('inpCat').value || 'عام';
+
+  const descEl = document.getElementById('inpDesc');
+  const amtEl = document.getElementById('inpAmt');
+
+  let ok = true;
+  if (!desc) { descEl.classList.add('error'); ok = false; } else descEl.classList.remove('error');
+  if (!amt || amt <= 0) { amtEl.classList.add('error'); ok = false; } else amtEl.classList.remove('error');
+  if (!ok) return;
+
+  const now = new Date();
+  txns.unshift({
+    id: Date.now(),
+    type: currentType,
+    desc, amt, cat,
+    date: now.toLocaleDateString('ar-AE', { day: 'numeric', month: 'long', year: 'numeric' }),
+    isoDate: now.toISOString()
+  });
+  save();
+
+  document.getElementById('inpDesc').value = '';
+  document.getElementById('inpAmt').value = '';
+  render();
+}
+
+// ===== DELETE =====
+function delTxn(id) {
+  if (confirm('حذف هذه العملية؟')) {
+    txns = txns.filter(t => t.id !== id);
+    save(); render();
+  }
+}
+
+function clearAll() {
+  if (confirm('هل أنت متأكد من مسح كل السجلات؟')) { txns = []; save(); render(); }
+}
+
+// ===== EDIT =====
+function openEdit(id) {
+  const t = txns.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('editDesc').value = t.desc;
+  document.getElementById('editAmt').value = t.amt;
+  editType = t.type;
+  document.getElementById('editBtnIncome').className = 'type-btn' + (t.type === 'income' ? ' active income' : '');
+  document.getElementById('editBtnExpense').className = 'type-btn' + (t.type === 'expense' ? ' active expense' : '');
+  updateCatDropdown('editCat', t.type);
+  document.getElementById('editCat').value = t.cat;
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEdit() {
+  document.getElementById('editModal').classList.remove('open');
+}
+
+function saveEdit() {
+  const id = parseInt(document.getElementById('editId').value);
+  const t = txns.find(x => x.id === id);
+  if (!t) return;
+  const desc = document.getElementById('editDesc').value.trim();
+  const amt = parseFloat(document.getElementById('editAmt').value);
+  const cat = document.getElementById('editCat').value;
+  if (!desc || !amt || amt <= 0) return;
+  t.desc = desc; t.amt = amt; t.cat = cat; t.type = editType;
+  save(); closeEdit(); render();
+}
+
+// ===== FILTER =====
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+// ===== RENDER TXN ITEM =====
+function txnHTML(t, showDel = true) {
+  return `
+    <div class="txn-item">
+      <div class="txn-icon ${t.type}">
+        ${t.type === 'income'
+          ? '<i class="ti ti-arrow-down" style="color:#16a34a"></i>'
+          : '<i class="ti ti-arrow-up" style="color:#dc2626"></i>'}
+      </div>
+      <div class="txn-info">
+        <div class="txn-name">${t.desc}</div>
+        <div class="txn-date">${t.cat} · ${t.date}</div>
+      </div>
+      <div class="txn-amount ${t.type}">${t.type === 'expense' ? '−' : '+'} ${fmt(t.amt)}</div>
+      <div class="txn-actions">
+        <button class="txn-btn" onclick="openEdit(${t.id})" title="تعديل"><i class="ti ti-edit"></i></button>
+        ${showDel ? `<button class="txn-btn del" onclick="delTxn(${t.id})" title="حذف"><i class="ti ti-trash"></i></button>` : ''}
+      </div>
+    </div>`;
+}
+
+// ===== MAIN RENDER =====
+function render() {
+  const income = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
+  const expense = txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+  const bal = income - expense;
+
+  // Balance card
+  const balEl = document.getElementById('balanceAmt');
+  if (balEl) {
+    balEl.textContent = fmt(bal);
+    balEl.style.color = bal >= 0 ? '#fff' : '#fca5a5';
+  }
+  const ti = document.getElementById('totalIncome');
+  const te = document.getElementById('totalExpense');
+  if (ti) ti.textContent = fmt(income);
+  if (te) te.textContent = fmt(expense);
+
+  // Home last 5
+  const homeList = document.getElementById('homeList');
+  if (homeList) {
+    const last5 = txns.slice(0, 5);
+    homeList.innerHTML = last5.length
+      ? last5.map(t => txnHTML(t)).join('')
+      : '<div class="empty-state"><i class="ti ti-inbox" style="font-size:40px;display:block;margin-bottom:.5rem"></i>لا يوجد سجلات بعد</div>';
+  }
+
+  // Full list
+  const list = document.getElementById('txnList');
+  if (list) {
+    const filtered = currentFilter === 'all' ? txns : txns.filter(t => t.type === currentFilter);
+    list.innerHTML = filtered.length
+      ? filtered.map(t => txnHTML(t)).join('')
+      : '<div class="empty-state"><i class="ti ti-inbox" style="font-size:40px;display:block;margin-bottom:.5rem"></i>لا يوجد سجلات</div>';
+  }
+
+  // Cat chips
+  renderCatChips();
+  updateCatDropdown('inpCat', currentType);
+}
+
+// ===== CATEGORY CHIPS =====
+function renderCatChips() {
+  const ic = document.getElementById('incomeCats');
+  const ec = document.getElementById('expenseCats');
+  if (!ic || !ec) return;
+
+  ic.innerHTML = cats.income.map(c => `
+    <div class="cat-chip income-chip">
+      ${c}
+      <button class="del-cat" onclick="delCat('income','${c}')">×</button>
+    </div>`).join('');
+
+  ec.innerHTML = cats.expense.map(c => `
+    <div class="cat-chip expense-chip">
+      ${c}
+      <button class="del-cat" onclick="delCat('expense','${c}')">×</button>
+    </div>`).join('');
+}
+
+function addCat(type) {
+  const inp = document.getElementById(type === 'income' ? 'newIncCat' : 'newExpCat');
+  const val = inp.value.trim();
+  if (!val || cats[type].includes(val)) return;
+  cats[type].push(val);
+  saveCats();
+  inp.value = '';
+  renderCatChips();
+  updateCatDropdown('inpCat', currentType);
+}
+
+function delCat(type, name) {
+  cats[type] = cats[type].filter(c => c !== name);
+  saveCats();
+  renderCatChips();
+  updateCatDropdown('inpCat', currentType);
+}
+
+// ===== REPORTS =====
+function populateReportFilters() {
+  // Years
+  const years = [...new Set(txns.map(t => t.isoDate ? new Date(t.isoDate).getFullYear() : new Date().getFullYear()))].sort((a,b) => b-a);
+  const rYear = document.getElementById('rYear');
+  const prev = rYear.value;
+  rYear.innerHTML = '<option value="">كل السنوات</option>';
+  years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; rYear.appendChild(o); });
+  if (prev) rYear.value = prev;
+
+  // All cats
+  const allCats = [...new Set([...cats.income, ...cats.expense])];
+  const rCat = document.getElementById('rCat');
+  const pc = rCat.value;
+  rCat.innerHTML = '<option value="">كل التصنيفات</option>';
+  allCats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; rCat.appendChild(o); });
+  if (pc) rCat.value = pc;
+}
+
+function generateReport() {
+  const year = document.getElementById('rYear').value;
+  const month = document.getElementById('rMonth').value;
+  const type = document.getElementById('rType').value;
+  const cat = document.getElementById('rCat').value;
+  const group = document.getElementById('rGroup').value;
+
+  let filtered = txns.filter(t => {
+    const d = t.isoDate ? new Date(t.isoDate) : null;
+    if (year && d && d.getFullYear() != year) return false;
+    if (month && d && (d.getMonth() + 1) != month) return false;
+    if (type && t.type !== type) return false;
+    if (cat && t.cat !== cat) return false;
+    return true;
+  });
+
+  const income = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
+  const expense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+  const bal = income - expense;
+
+  // Group
+  let groups = {};
+  filtered.forEach(t => {
+    let key;
+    if (group === 'month') {
+      const d = t.isoDate ? new Date(t.isoDate) : new Date();
+      key = d.toLocaleDateString('ar-AE', { month: 'long', year: 'numeric' });
+    } else if (group === 'day') {
+      const d = t.isoDate ? new Date(t.isoDate) : new Date();
+      key = d.toLocaleDateString('ar-AE', { day: 'numeric', month: 'long', year: 'numeric' });
+    } else if (group === 'cat') {
+      key = t.cat;
+    } else {
+      key = t.type === 'income' ? 'الدخل' : 'المصاريف';
+    }
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(t);
+  });
+
+  const res = document.getElementById('reportResults');
+  res.style.display = 'block';
+
+  if (!filtered.length) {
+    res.innerHTML = '<div class="no-results"><i class="ti ti-search" style="font-size:36px;display:block;margin-bottom:.5rem"></i>لا توجد نتائج لهذه الفلترة</div>';
+    return;
+  }
+
+  let html = `
+    <h3><i class="ti ti-file-analytics"></i> نتائج التقرير</h3>
+    <div class="report-summary">
+      <div class="rscard r-income"><div class="rs-label">دخل</div><div class="rs-value">${fmt(income)}</div></div>
+      <div class="rscard r-expense"><div class="rs-label">مصاريف</div><div class="rs-value">${fmt(expense)}</div></div>
+      <div class="rscard r-balance"><div class="rs-label">صافي</div><div class="rs-value" style="color:${bal>=0?'#16a34a':'#dc2626'}">${fmt(bal)}</div></div>
+    </div>`;
+
+  Object.entries(groups).forEach(([gTitle, items]) => {
+    const gIncome = items.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
+    const gExpense = items.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+    html += `<div class="group-block">
+      <div class="group-title">${gTitle} · دخل: ${fmt(gIncome)} · مصاريف: ${fmt(gExpense)}</div>`;
+    items.forEach(t => {
+      html += `<div class="rep-txn">
+        <div class="rep-txn-left">
+          <div class="rep-dot ${t.type}"></div>
+          <div>
+            <div class="rep-desc">${t.desc}</div>
+            <div class="rep-cat">${t.cat} · ${t.date}</div>
+          </div>
+        </div>
+        <div class="rep-amount ${t.type}">${t.type === 'expense' ? '−' : '+'} ${fmt(t.amt)}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  res.innerHTML = html;
+}
+
+// ===== MIGRATE OLD DATA (add isoDate if missing) =====
+txns = txns.map(t => {
+  if (!t.isoDate) t.isoDate = new Date().toISOString();
+  return t;
+});
+save();
+
+// ===== INIT =====
+updateCatDropdown('inpCat', currentType);
+render();
+</script>
+</body>
+</html>
